@@ -14,7 +14,8 @@ class ExtractRequest(BaseModel):
 async def extract_skills(request: ExtractRequest):
     try:
         sanitized_text = sanitize_job_description(request.text)
-        profile = await extractor.extract_skills(sanitized_text)
+        is_jd = (request.type == "job_description")
+        profile = await extractor.extract_skills(sanitized_text, is_job_description=is_jd)
         return {
             "status": "success",
             "data": profile
