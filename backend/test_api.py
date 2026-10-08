@@ -1,11 +1,17 @@
-import google.generativeai as genai
+import os
+from dotenv import load_dotenv
+from groq import Groq
 
-genai.configure(api_key="AQ.Ab8RN6JqZlNtEwcQlatKp3mbnlgA6Lso7KOPmMQPKQFJGg61og")
-model = genai.GenerativeModel('gemini-1.5-flash')
+load_dotenv()
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
 try:
-    response = model.generate_content("hello")
+    response = client.chat.completions.create(
+        messages=[{"role": "user", "content": "hello"}],
+        model="openai/gpt-oss-120b"
+    )
     print("SUCCESS")
-    print(response.text)
+    print(response.choices[0].message.content)
 except Exception as e:
     print("ERROR")
     print(e)

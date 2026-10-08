@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: ./backend
+    container_name: resume_analyzer_backend
+    restart: always
+    env_file:
+      - ./backend/.env
+    volumes:
+      # Mount the database file so it persists and can be backed up easily
+      - ./backend/sql_app.db:/app/sql_app.db
+    # We don't need to expose ports directly if we use Nginx proxy
+    # but exposing it allows direct access or testing if needed
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: 
+      context: ./frontend
+    container_name: resume_analyzer_frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend

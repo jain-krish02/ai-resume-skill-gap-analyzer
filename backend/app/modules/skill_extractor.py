@@ -1,13 +1,16 @@
+import os
 import json
+import re
 import logging
-from google import genai
-from google.genai import types
+from dotenv import load_dotenv
+from groq import Groq
 from typing import Dict, Any
 
+load_dotenv()
 logger = logging.getLogger(__name__)
 
 # Initialize the client
-client = genai.Client(api_key="AQ.Ab8RN6JqZlNtEwcQlatKp3mbnlgA6Lso7KOPmMQPKQFJGg61og")
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 class SkillExtractor:
     """Handles structured skill extraction from parsed resume/job description text."""
@@ -63,14 +66,33 @@ class SkillExtractor:
             """
             
         try:
-            response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                )
+            response = client.chat.completions.create(
+                model='openai/gpt-oss-120b',
+                messages=[{"role": "user", "content": prompt}]
             )
-            return json.loads(response.text)
+            content = response.choices[0].message.content
+            # Extremely robust JSON extraction
+            match = re.search(r'```(?:json)?(.*?)```', content, re.DOTALL)
+            if match:
+                content = match.group(1).strip()
+            
+            # Find the first { or [ and last } or ]
+            start_brace = content.find('{')
+            start_bracket = content.find('[')
+            start = -1
+            if start_brace != -1 and start_bracket != -1:
+                start = min(start_brace, start_bracket)
+            else:
+                start = max(start_brace, start_bracket)
+                
+            end_brace = content.rfind('}')
+            end_bracket = content.rfind(']')
+            end = max(end_brace, end_bracket)
+            
+            if start != -1 and end != -1:
+                content = content[start:end+1]
+                
+            return json.loads(content)
         except Exception as e:
             logger.error(f"Gemini API Error: {str(e)}")
             raise ValueError(f"AI Extraction failed: {str(e)}")

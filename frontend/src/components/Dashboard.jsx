@@ -30,7 +30,7 @@ export default function Dashboard({ resumeData, candidateSkills, targetRole, gap
         roadmap: roadmap
       };
       
-      const response = await axios.post('http://localhost:8000/api/export/', payload, {
+      const response = await axios.post('/api/export/', payload, {
         responseType: 'blob', // Important for file download
       });
       

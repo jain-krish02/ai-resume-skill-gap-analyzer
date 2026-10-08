@@ -13,7 +13,7 @@ export default function JobSelection({ onJobSelected, onCustomJobParsed }) {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/job/');
+        const response = await axios.get('/api/job/');
         setRoles(response.data.data);
       } catch (err) {
         console.error("Failed to fetch roles:", err);
@@ -39,13 +39,13 @@ export default function JobSelection({ onJobSelected, onCustomJobParsed }) {
     setError('');
     
     try {
-      const response = await axios.post('http://localhost:8000/api/extract/', {
+      const response = await axios.post('/api/extract/', {
         text: customJD,
         type: 'job_description'
       });
       
-      const extractedSkills = response.data.data.required_skills;
-      if (!extractedSkills || extractedSkills.length === 0) {
+      const extractedSkills = response.data?.data?.required_skills;
+      if (!extractedSkills || !Array.isArray(extractedSkills) || extractedSkills.length === 0) {
         setError('Could not extract any skills from this description.');
         setProcessingCustom(false);
         return;
@@ -58,7 +58,7 @@ export default function JobSelection({ onJobSelected, onCustomJobParsed }) {
       
       onCustomJobParsed(customRoleData);
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to process custom job description.");
+      setError(err.response?.data?.detail || err.message || "Failed to process custom job description.");
     } finally {
       setProcessingCustom(false);
     }

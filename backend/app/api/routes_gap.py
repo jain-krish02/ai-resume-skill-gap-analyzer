@@ -15,6 +15,11 @@ class GapRequest(BaseModel):
 
 @router.post("/")
 def analyze_gap(request: GapRequest, db: Session = Depends(get_db)):
+    print("=== DEBUG GAP API ===")
+    print("Candidate skills count:", len(request.candidate_skills))
+    print("Candidate skills names:", [s.get("name") for s in request.candidate_skills])
+    print("=======================")
+    
     if request.target_role_id == "custom" and request.custom_requirements is not None:
         required_skills = request.custom_requirements
     else:

@@ -1,10 +1,15 @@
+import os
 import json
+import re
 import logging
-import google.generativeai as genai
+from dotenv import load_dotenv
+from groq import Groq
 from typing import List, Dict, Any
 
+load_dotenv()
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
 logger = logging.getLogger(__name__)
-model = genai.GenerativeModel('gemini-3.6-flash', generation_config={"response_mime_type": "application/json"})
 
 class RoadmapRecommender:
     """Generates learning roadmaps, projects, and courses for missing skills using Gemini."""
@@ -34,9 +39,33 @@ class RoadmapRecommender:
         """
         
         try:
-            logger.info("Calling Gemini for roadmap generation...")
-            response = model.generate_content(prompt)
-            return json.loads(response.text)
+            logger.info("Calling Groq for roadmap generation...")
+            response = client.chat.completions.create(
+                model='openai/gpt-oss-120b',
+                messages=[{"role": "user", "content": prompt}]
+            )
+            content = response.choices[0].message.content
+            # Extremely robust JSON extraction
+            match = re.search(r'```(?:json)?(.*?)```', content, re.DOTALL)
+            if match:
+                content = match.group(1).strip()
+            
+            start_brace = content.find('{')
+            start_bracket = content.find('[')
+            start = -1
+            if start_brace != -1 and start_bracket != -1:
+                start = min(start_brace, start_bracket)
+            else:
+                start = max(start_brace, start_bracket)
+                
+            end_brace = content.rfind('}')
+            end_bracket = content.rfind(']')
+            end = max(end_brace, end_bracket)
+            
+            if start != -1 and end != -1:
+                content = content[start:end+1]
+                
+            return json.loads(content)
         except Exception as e:
             logger.error(f"Gemini API Error in recommender: {str(e)}")
             # Fallback mock if LLM fails

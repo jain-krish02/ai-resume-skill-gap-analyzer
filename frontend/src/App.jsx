@@ -18,11 +18,17 @@ function App() {
     setResumeData(data);
     setLoadingStep('Extracting skills from resume...');
     try {
-      const response = await axios.post('http://localhost:8000/api/extract/', {
+      const response = await axios.post('/api/extract/', {
         text: data.raw_text,
         type: 'resume'
       });
-      setCandidateSkills(response.data.data.skills || []);
+      const extractedData = response.data.data;
+      const allSkills = [
+        ...(extractedData.skills || []),
+        ...(extractedData.tools || []),
+        ...(extractedData.education || []).map(edu => ({ name: edu, category: 'Education' }))
+      ];
+      setCandidateSkills(allSkills);
     } catch (err) {
       setError("Failed to extract skills from resume.");
     } finally {
@@ -35,7 +41,7 @@ function App() {
     setLoadingStep('Fetching role requirements...');
     try {
       // Fetch role skills
-      const roleResponse = await axios.get(`http://localhost:8000/api/job/${roleId}/skills`);
+      const roleResponse = await axios.get(`/api/job/${roleId}/skills`);
       await processAnalysis(roleResponse.data.data, roleId);
     } catch (err) {
       setError(err.response?.data?.detail || "An error occurred during analysis.");
@@ -54,7 +60,7 @@ function App() {
       
       setLoadingStep('Analyzing skill gap...');
       // Gap Analysis
-      const gapResponse = await axios.post('http://localhost:8000/api/gap/', {
+      const gapResponse = await axios.post('/api/gap/', {
         candidate_skills: candidateSkills,
         target_role_id: roleData.role_title === "Custom Role" ? "custom" : roleId,
         custom_requirements: roleData.role_title === "Custom Role" ? roleData.required_skills : null
@@ -64,7 +70,7 @@ function App() {
       
       setLoadingStep('Generating learning roadmap...');
       // Roadmap Generation
-      const roadmapResponse = await axios.post('http://localhost:8000/api/roadmap/', {
+      const roadmapResponse = await axios.post('/api/roadmap/', {
         missing_must_have: gapData.missing_must_have,
         missing_good_to_have: gapData.missing_good_to_have
       });
@@ -139,7 +145,7 @@ function App() {
               </div>
               <p className="text-slate-300 text-sm">Extracted {candidateSkills.length} skills from your resume.</p>
             </div>
-            <JobSelection onJobSelected={handleJobSelected} />
+            <JobSelection onJobSelected={handleJobSelected} onCustomJobParsed={handleCustomJobParsed} />
           </div>
         ) : (gapReport && roadmap) ? (
           <Dashboard 
